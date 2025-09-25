@@ -1,56 +1,12 @@
-// --- Подключение зависимостей ---
-import React, { useState, useEffect } from 'react';
+/import React, { useState, useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import { Packer, Document, Paragraph, TextRun } from 'docx';
 
-// --- Стили ---
-// Стили остаются без изменений, поэтому для краткости я их свернул.
-// В реальном файле они будут здесь, как и прежде.
-const styles = `
-  /* ... все ваши стили ... */
-  .scaffolding-calculator { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 700px; margin: 2rem auto; border-radius: 15px; overflow: hidden; box-shadow: 0 6px 25px rgba(0, 43, 85, 0.1); border: 1px solid #e0e7ff; background-color: #ffffff; }
-  .calc-header { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: #fff; padding: 20px 25px; text-align: center; }
-  .calc-header h2 { margin: 0; font-size: 24px; }
-  .calc-body { padding: 25px 30px; }
-  .form-group { margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid #eef2f7; }
-  .form-group:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
-  .form-group-title { display: block; font-size: 18px; font-weight: 500; margin-bottom: 15px; color: #334155; }
-  .radio-group { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
-  .radio-group label { display: flex; align-items: center; cursor: pointer; padding: 10px 15px; border-radius: 8px; border: 1px solid #d1d5db; transition: all 0.2s ease; background-color: #f9fafb; }
-  .radio-group input[type="radio"] { display: none; }
-  .radio-group input[type="radio"]:checked + span { color: #007bff; font-weight: 500; }
-  .radio-group label:has(input:checked) { border-color: #007bff; background-color: #f0f9ff; }
-  label { display: block; margin-bottom: 8px; font-weight: 500; color: #4b5563; }
-  input[type="number"], input[type="text"] { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease; font-size: 16px; }
-  input[type="number"]:focus, input[type="text"]:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15); }
-  .btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 18px; font-weight: 500; transition: all 0.2s ease; }
-  .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); }
-  .btn:disabled { background: #ced4da; cursor: not-allowed; }
-  .result-block { margin-top: 30px; padding: 25px; border-radius: 12px; background-color: #f8f9fa; border: 1px solid #e9ecef; }
-  .result-block h3, .result-block h4 { color: #0056b3; margin-top: 0; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 15px; }
-  .result-value { font-size: 28px; font-weight: bold; color: #28a745; margin-bottom: 20px; text-align: center; }
-  .result-details p { margin: 0 0 12px 0; line-height: 1.6; }
-  .result-details code { background-color: #e9ecef; padding: 3px 6px; border-radius: 4px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; }
-  .error-block { background-color: #fff5f5; border-color: #fecaca; }
-  .error-block h4 { color: #dc2626; border-color: #ef4444; }
-  .error-block p { color: #b91c1c; }
-  .formula-breakdown { background-color: #eef2f7; padding: 15px; border-radius: 8px; margin-top: 15px; }
-  .formula-breakdown ul { padding-left: 20px; margin: 0; }
-  .coefficient-block { border-top: 1px solid #d1d5db; padding-top: 15px; margin-top: 15px; }
-  .accordion-header { background: none; border: none; width: 100%; text-align: left; padding: 10px 0; font-size: 16px; cursor: pointer; border-bottom: 1px solid #e0e7ff; color: #1e3a8a; }
-  .accordion-content { overflow: hidden; transition: max-height 0.3s ease-out; background-color: #f0f9ff; padding: 0 15px; border-radius: 0 0 8px 8px; }
-  .accordion-content p { padding: 15px 0; margin: 0; }
-  .export-buttons { margin-top: 20px; text-align: center; }
-  .btn-export { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; font-weight: 500; }
-  .btn-word { background-color: #2b579a; color: white; }
-  .btn-word:hover { background-color: #1e3c6a; }
-`;
-
+// Это наш компонент калькулятора. Вся его логика и внешний вид описаны здесь.
 function ScaffoldingCalculator() {
-  // --- Состояния (State) для хранения данных ---
+  // --- "Записные книжки" (State) для хранения данных ---
   const [location, setLocation] = useState('outside');
   const [insideType, setInsideType] = useState('ceiling');
-  const [accordionOpen, setAccordionOpen] = useState(false);
   const [inputs, setInputs] = useState({
     height: '',
     length: '',
@@ -60,65 +16,89 @@ function ScaffoldingCalculator() {
     wallsLength: ''
   });
   
-  // --- ИЗМЕНЕНИЕ №1: При первой загрузке компонента, мы сразу пытаемся достать токен из "кармана" (localStorage) ---
-  // Если в localStorage что-то есть, мы используем это значение. Если нет (||), токен будет пустой строкой.
   const [token, setToken] = useState(localStorage.getItem('accessToken') || '');
-
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [accordionOpen, setAccordionOpen] = useState(false);
 
-  // Эффект для автоматического получения токена из URL
+  // --- ИСПРАВЛЕНИЕ: Этот useEffect теперь правильно ищет userId и paymentId ---
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('token');
-    
-    if (tokenFromUrl) {
-      // --- ИЗМЕНЕНИЕ №2: Если мы нашли токен в URL, мы немедленно сохраняем его в "карман" (localStorage) ---
-      // Ключ 'accessToken' - это название нашей "ячейки" в хранилище.
-      localStorage.setItem('accessToken', tokenFromUrl);
-      
-      setToken(tokenFromUrl);
-      // Очищаем URL, чтобы токен не оставался видимым
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []); // Пустой массив зависимостей означает, что этот код выполнится только один раз при "рождении" компонента.
+    const userId = urlParams.get('userId');
+    const paymentId = urlParams.get('paymentId');
 
+    // Если в URL есть параметры от бота - запрашиваем токен
+    if (userId && paymentId) {
+        const fetchToken = async () => {
+            // Убедитесь, что REACT_APP_API_URL задан в переменных окружения Vercel
+            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+            try {
+                const response = await fetch(`${apiUrl}/api/payment-success?userId=${userId}&paymentId=${paymentId}`);
+                const data = await response.json();
+                
+                if (data.success && data.token) {
+                    localStorage.setItem('accessToken', data.token); // Сохраняем в "карман"
+                    setToken(data.token); // Кладем в "руку"
+                    alert(`Ваш токен доступа: ${data.token}\n\nОн сохранен в браузере и будет использоваться автоматически.`);
+                    // Очищаем URL, чтобы параметры не мешались
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } else {
+                  alert(data.message || 'Произошла ошибка при получении токена.');
+                  setError(data.message || 'Произошла ошибка при получении токена.');
+                }
+            } catch (err) {
+                alert('Не удалось связаться с сервером для получения токена. Попробуйте снова.');
+                setError('Не удалось связаться с сервером для получения токена. Проверьте ваше интернет-соединение или попробуйте позже.');
+            }
+        };
+        fetchToken();
+    }
+  }, []); // Пустой массив зависимостей означает, что этот код выполнится только один раз при загрузке
+
+
+  // --- Обработчики действий пользователя ---
+
+  // Обработчик изменения значений в полях ввода
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setInputs(prev => ({ ...prev, [name]: value }));
   };
 
+  // Обработчик отправки формы
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!token) {
-      setError('Пожалуйста, введите ваш токен доступа или получите новый.');
-      setResult(null);
-      return;
-    }
-    
     setLoading(true);
     setError('');
     setResult(null);
 
-    const apiData = {
-      token,
-      location,
-      ...inputs
-    };
-    if (location === 'inside') {
-      apiData.insideType = insideType;
+    if (!token) {
+      setError('Пожалуйста, введите ваш токен доступа или получите новый через Telegram-бота.');
+      setLoading(false);
+      return;
     }
     
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    // Собираем данные для отправки на сервер
+    const requestData = {
+      token,
+      data: {
+        location,
+        insideType: location === 'inside' ? insideType : null,
+        ...inputs
+      }
+    };
 
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    
     try {
-      const response = await fetch(`${apiUrl}/api/calculate-scaffolding`, {
+      const response = await fetch(`${apiUrl}/api/calculate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiData)
+        body: JSON.stringify(requestData)
       });
+
       const data = await response.json();
+
       if (data.success) {
         setResult(data);
       } else {
@@ -130,153 +110,147 @@ function ScaffoldingCalculator() {
       setLoading(false);
     }
   };
-
+    
+  // Функция для экспорта в Word
   const exportToWord = () => {
     if (!result) return;
-
+    
     const doc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({
-            children: [new TextRun({ text: 'Результат расчета объема работ по устройству лесов', bold: true, size: 32 })],
-          }),
-          new Paragraph({ text: '' }),
-          new Paragraph({
+        sections: [{
             children: [
-              new TextRun({ text: 'Общий объем работ (V): ', bold: true }),
-              new TextRun({ text: `${result.volume} м²`, bold: true, color: "28a745" }),
+                new Paragraph({
+                    children: [new TextRun({ text: "Результат расчета объема работ по лесам", bold: true, size: 32 })],
+                }),
+                new Paragraph({ text: `Объем работ (V): ${result.volume} м²` }),
+                new Paragraph({ text: `Формула расчета: ${result.formula}` }),
+                ...result.formulaBreakdown.map(line => new Paragraph({ text: `- ${line}` })),
+                 result.coefficient ? new Paragraph({ 
+                    children: [
+                        new TextRun({ text: "Повышающий коэффициент (K): ", bold: true }),
+                        new TextRun({ text: `${result.coefficient.value}. ${result.coefficient.explanation}` })
+                    ]
+                }) : new Paragraph({}),
+                result.coefficient ? new Paragraph({ text: `Формула коэффициента: ${result.coefficient.formula}`}) : new Paragraph({}),
+                 new Paragraph({
+                    children: [new TextRun({ text: "Обоснование:", bold: true })]
+                }),
+                new Paragraph({
+                    children: [new TextRun({ text: result.justification.title, bold: true })]
+                }),
+                new Paragraph({
+                    text: result.justification.text
+                }),
             ],
-          }),
-           new Paragraph({ text: '' }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Формула расчета: ', bold: true }),
-              new TextRun({ text: result.formula, font: { name: 'Courier New' } }),
-            ],
-          }),
-          ...result.formulaBreakdown.map(line => new Paragraph({ text: `  - ${line}`, style: "ListParagraph" })),
-          ...(result.coefficient ? [
-            new Paragraph({ text: '' }),
-            new Paragraph({
-              children: [ new TextRun({ text: result.coefficient.explanation, bold: true })]
-            }),
-             new Paragraph({
-              children: [ 
-                  new TextRun({ text: 'Формула коэффициента: ', bold: true }),
-                  new TextRun({ text: result.coefficient.formula, font: { name: 'Courier New' } })
-              ]
-            }),
-          ] : []),
-           new Paragraph({ text: '' }),
-           new Paragraph({
-            children: [new TextRun({ text: 'Обоснование:', bold: true, underline: {} })],
-          }),
-          new Paragraph({
-             children: [new TextRun({ text: result.justification.title, bold: true })],
-          }),
-          new Paragraph({
-             children: [new TextRun({ text: result.justification.text })],
-          }),
-        ],
-      }],
+        }],
     });
 
     Packer.toBlob(doc).then(blob => {
-      saveAs(blob, 'Расчет_лесов.docx');
+        saveAs(blob, "Расчет_лесов.docx");
     });
-  };
+};
+
 
   return (
     <>
-      <style>{styles}</style>
+    <style>{`
+        /* Стили остаются без изменений */
+        .scaffolding-calculator { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 700px; margin: 2rem auto; border-radius: 15px; overflow: hidden; box-shadow: 0 6px 25px rgba(0, 43, 85, 0.1); border: 1px solid #e0e7ff; background-color: #ffffff; }
+        .calc-header { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: #fff; padding: 20px 25px; text-align: center; }
+        .calc-header h2 { margin: 0; font-size: 24px; }
+        .calc-body { padding: 25px 30px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 16px; font-weight: 500; margin-bottom: 8px; color: #334155; }
+        .form-group input { width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; transition: border-color 0.2s, box-shadow 0.2s; }
+        .form-group input:focus { border-color: #007bff; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2); outline: none; }
+        .radio-group { display: flex; gap: 15px; margin-bottom: 20px; }
+        .radio-group label { display: flex; align-items: center; cursor: pointer; padding: 10px 15px; border: 1px solid #d1d5db; border-radius: 8px; transition: all 0.2s; }
+        .radio-group input { display: none; }
+        .radio-group input:checked + label { background-color: #e0f2fe; border-color: #007bff; color: #0056b3; font-weight: 500; }
+        .btn { display: block; width: 100%; padding: 14px; background-color: #007bff; color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: 500; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
+        .btn:hover:not(:disabled) { background-color: #0056b3; }
+        .btn:active:not(:disabled) { transform: translateY(1px); }
+        .btn:disabled { background-color: #a0c3e6; cursor: not-allowed; }
+        .result-block { margin-top: 30px; padding: 20px; border-radius: 8px; background-color: #f8f9fa; border: 1px solid #e9ecef; }
+        .result-block.error-block { background-color: #fff5f5; border-color: #fecaca; color: #b91c1c; }
+        .result-value { font-size: 28px; font-weight: bold; color: #0056b3; margin-bottom: 15px; }
+        .result-details code { background-color: #e9ecef; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; }
+        .formula-breakdown { margin-top: 10px; padding-left: 20px; }
+        .coefficient-block { margin-top: 15px; padding: 10px; background-color: #fff9e6; border: 1px solid #ffeeba; border-radius: 5px; }
+        .token-input-group { margin-bottom: 20px; }
+        .export-buttons { margin-top: 20px; display: flex; gap: 10px; }
+        .btn-export { padding: 10px 15px; border: none; border-radius: 5px; color: #fff; cursor: pointer; font-weight: 500; }
+        .btn-word { background-color: #2b579a; }
+        .accordion-header { background: none; border: none; text-align: left; padding: 10px 0; font-size: 16px; width: 100%; cursor: pointer; border-top: 1px solid #eee; margin-top: 15px; }
+        .accordion-content { overflow: hidden; transition: max-height 0.3s ease; }
+    `}</style>
       <div className="scaffolding-calculator">
         <div className="calc-header">
-          <h2>Калькулятор объема работ по устройству лесов</h2>
+          <h2>Калькулятор объема работ по лесам</h2>
         </div>
         <div className="calc-body">
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-                <label htmlFor="token-input">Ваш токен доступа</label>
-                <input 
-                    id="token-input"
-                    type="text" 
-                    value={token} 
-                    onChange={(e) => setToken(e.target.value)} 
-                    placeholder="Введите токен, полученный от бота" 
-                    required 
-                />
+            <div className="form-group token-input-group">
+                <label>Токен доступа</label>
+                <input type="text" value={token} onChange={(e) => setToken(e.target.value)} placeholder="Введите ваш токен доступа" required />
             </div>
 
             <div className="form-group">
-              <div className="form-group-title">1. Местоположение лесов</div>
+              <label>Место установки лесов</label>
               <div className="radio-group">
-                <label>
-                  <input type="radio" name="location" value="outside" checked={location === 'outside'} onChange={(e) => setLocation(e.target.value)} />
-                  <span>Снаружи здания (по фасаду)</span>
-                </label>
-                <label>
-                  <input type="radio" name="location" value="inside" checked={location === 'inside'} onChange={(e) => setLocation(e.target.value)} />
-                  <span>Внутри здания</span>
-                </label>
+                <input type="radio" id="outside" name="location" value="outside" checked={location === 'outside'} onChange={() => setLocation('outside')} />
+                <label htmlFor="outside">Снаружи здания</label>
+                <input type="radio" id="inside" name="location" value="inside" checked={location === 'inside'} onChange={() => setLocation('inside')} />
+                <label htmlFor="inside">Внутри здания</label>
               </div>
             </div>
 
             {location === 'outside' && (
-              <div className="form-group">
-                <div className="form-group-title">2. Параметры для наружных лесов</div>
-                <div>
+              <>
+                <div className="form-group">
                   <label>Высота лесов (H), м</label>
-                  <input type="number" step="0.01" name="height" value={inputs.height} onChange={handleInputChange} placeholder="например, 24" required />
+                  <input type="number" step="0.01" name="height" value={inputs.height} onChange={handleInputChange} placeholder="например, 20" required />
                 </div>
-                <div style={{marginTop: '15px'}}>
-                  <label>Длина лесов по фасаду (L), м</label>
+                <div className="form-group">
+                  <label>Длина лесов (L), м</label>
                   <input type="number" step="0.01" name="length" value={inputs.length} onChange={handleInputChange} placeholder="например, 50" required />
                 </div>
-              </div>
+              </>
             )}
 
             {location === 'inside' && (
               <>
                 <div className="form-group">
-                  <div className="form-group-title">2. Тип работ внутри здания</div>
+                  <label>Тип работ внутри</label>
                   <div className="radio-group">
-                    <label>
-                      <input type="radio" name="insideType" value="ceiling" checked={insideType === 'ceiling'} onChange={(e) => setInsideType(e.target.value)} />
-                      <span>Отделка потолков</span>
-                    </label>
-                    <label>
-                      <input type="radio" name="insideType" value="walls" checked={insideType === 'walls'} onChange={(e) => setInsideType(e.target.value)} />
-                      <span>Отделка стен</span>
-                    </label>
+                    <input type="radio" id="ceiling" name="insideType" value="ceiling" checked={insideType === 'ceiling'} onChange={() => setInsideType('ceiling')} />
+                    <label htmlFor="ceiling">Потолок</label>
+                    <input type="radio" id="walls" name="insideType" value="walls" checked={insideType === 'walls'} onChange={() => setInsideType('walls')} />
+                    <label htmlFor="walls">Стены</label>
                   </div>
                 </div>
-
                 {insideType === 'ceiling' && (
-                  <div className="form-group">
-                    <div className="form-group-title">3. Параметры для отделки потолков</div>
-                    <div>
+                  <>
+                    <div className="form-group">
                       <label>Длина помещения (Lпом), м</label>
                       <input type="number" step="0.01" name="roomLength" value={inputs.roomLength} onChange={handleInputChange} placeholder="например, 12" required />
                     </div>
-                    <div style={{marginTop: '15px'}}>
+                    <div className="form-group">
                       <label>Ширина помещения (Wпом), м</label>
                       <input type="number" step="0.01" name="roomWidth" value={inputs.roomWidth} onChange={handleInputChange} placeholder="например, 8" required />
                     </div>
-                  </div>
+                  </>
                 )}
-
                 {insideType === 'walls' && (
-                  <div className="form-group">
-                    <div className="form-group-title">3. Параметры для отделки стен</div>
-                    <div>
+                  <>
+                    <div className="form-group">
                       <label>Общая длина стен (Lстен), м</label>
                       <input type="number" step="0.01" name="wallsLength" value={inputs.wallsLength} onChange={handleInputChange} placeholder="например, 36" required />
                     </div>
-                    <div style={{marginTop: '15px'}}>
+                    <div className="form-group">
                       <label>Ширина настила лесов (Wнастила), м</label>
                       <input type="number" step="0.01" name="scaffoldWidth" value={inputs.scaffoldWidth} onChange={handleInputChange} placeholder="например, 1.5" required />
                     </div>
-                  </div>
+                  </>
                 )}
               </>
             )}
@@ -286,16 +260,10 @@ function ScaffoldingCalculator() {
             </button>
           </form>
 
-          {error && (
-            <div className="result-block error-block">
-              <h4>Ошибка</h4>
-              <p>{error}</p>
-            </div>
-          )}
-
+          {error && <div className="result-block error-block"><p>{error}</p></div>}
+          
           {result && (
             <div className="result-block">
-              <h3>Результат расчета</h3>
               <div className="result-value">{result.volume} м²</div>
               <div className="result-details">
                 <p>Формула расчета: <code>{result.formula}</code></p>
