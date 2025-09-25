@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 
 // --- Стили ---
 const styles = `
-  /* ... (здесь находятся все стили, они остались без изменений) ... */
   .scaffolding-calculator { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 700px; margin: 2rem auto; border-radius: 15px; overflow: hidden; box-shadow: 0 6px 25px rgba(0, 43, 85, 0.1); border: 1px solid #e0e7ff; background-color: #ffffff; }
   .calc-header { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: #fff; padding: 20px 25px; text-align: center; }
   .calc-header h2 { margin: 0; font-size: 24px; }
@@ -87,18 +86,16 @@ function ScaffoldingCalculator() {
   };
 
   const runCalculation = async () => {
-    // Сначала очищаем старые результаты и ошибки
     setResult(null);
     setError('');
 
-    // Проводим все проверки до отправки запроса
     if (!token) {
       setError('Пожалуйста, введите ваш токен доступа.');
-      return; // Выходим из функции, если токена нет
+      return;
     }
     if (!location || (location === 'inside' && !insideType)) {
       setError('Пожалуйста, выберите все необходимые опции для расчета.');
-      return; // Выходим, если не все выбрано
+      return;
     }
     
     setLoading(true);
@@ -265,24 +262,4 @@ function ScaffoldingCalculator() {
 }
 
 export default ScaffoldingCalculator;
-```
-
----
-
-### Шаг 3: Отправьте Все Изменения на GitHub
-
-Теперь, когда у вас есть оба исправленных файла, вам нужно отправить финальную версию "чертежей" в наш "архив".
-
-1.  **Для бэкенда (папка `smetnoe-backend`):**
-    ```bash
-    git add .
-    git commit -m "fix: Улучшена обработка ошибок при выдаче токена"
-    git push
-    ```
-2.  **Для фронтенда (папка `smetnoe-frontend`):**
-    ```bash
-    git add .
-    git commit -m "fix: Исправлена логика кнопки расчета и ошибок"
-    git push
-    
 
