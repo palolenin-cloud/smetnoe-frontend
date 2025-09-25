@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 
 // --- Стили ---
-// Мы помещаем стили прямо в компонент для удобства.
 const styles = `
   /* ... (здесь находятся все стили, они остались без изменений) ... */
   .scaffolding-calculator { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 700px; margin: 2rem auto; border-radius: 15px; overflow: hidden; box-shadow: 0 6px 25px rgba(0, 43, 85, 0.1); border: 1px solid #e0e7ff; background-color: #ffffff; }
@@ -34,7 +33,6 @@ const styles = `
 `;
 
 function ScaffoldingCalculator() {
-  // --- "Записные книжки" (Состояние / State) ---
   const [location, setLocation] = useState('');
   const [insideType, setInsideType] = useState('');
   const [inputs, setInputs] = useState({
@@ -47,9 +45,6 @@ function ScaffoldingCalculator() {
   const [loading, setLoading] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState(false);
 
-  // --- "Умные наблюдатели" (Эффекты / useEffect) ---
-  
-  // НАБЛЮДАТЕЛЬ №1: Проверяет наличие '?token=...' в URL при первой загрузке.
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('token');
@@ -59,74 +54,54 @@ function ScaffoldingCalculator() {
     }
   }, []);
 
-  // =======================================================================
-  // === НАЧАЛО НОВОГО КОДА                                              ===
-  // =======================================================================
-  // НАБЛЮДАТЕЛЬ №2: Проверяет, не находимся ли мы на странице "успешной оплаты".
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('userId');
     const paymentId = urlParams.get('paymentId');
 
-    // Если в адресе есть '/payment-success' и параметры пользователя...
     if (window.location.pathname === '/payment-success' && userId && paymentId) {
-        
-        // ...то мы запускаем асинхронную операцию "звонка" на бэкенд за токеном.
         const fetchToken = async () => {
             const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
             try {
-                // "Звоним" по адресу, который мы настроили в server.js.
                 const response = await fetch(`${apiUrl}/api/payment-success?userId=${userId}&paymentId=${paymentId}`);
                 const data = await response.json();
                 
-                // Если бэкенд ответил успешно и прислал токен...
                 if (data.success && data.token) {
-                    setToken(data.token); // ...сохраняем токен в нашу "записную книжку".
-                    
-                    // Сообщаем пользователю радостную новость.
+                    setToken(data.token);
                     alert(`Ваш токен доступа: ${data.token}\n\nОн скопирован в поле ввода. Теперь вы можете делать расчеты.`);
-                    
-                    // "Подчищаем" URL, чтобы убрать из него '/payment-success', возвращая пользователя на главную.
                     window.history.replaceState({}, document.title, window.location.pathname.replace('/payment-success', ''));
                 } else {
-                  // Если что-то пошло не так на стороне сервера.
                   alert(data.message || 'Произошла ошибка при получении токена.');
                 }
             } catch (err) {
-                // Если мы даже не смогли "дозвониться" до сервера.
                 alert('Не удалось связаться с сервером для получения токена. Попробуйте снова.');
             }
         };
-
-        fetchToken(); // Немедленно запускаем операцию.
+        fetchToken();
     }
-  }, []); // Пустой массив [] также означает "сделай это только один раз при загрузке".
-  // =======================================================================
-  // === КОНЕЦ НОВОГО КОДА                                               ===
-  // =======================================================================
+  }, []);
 
-
-  // --- "Инструкции для помощников" (Обработчики / Handlers) ---
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setInputs(prev => ({ ...prev, [name]: value }));
   };
 
   const runCalculation = async () => {
-    if (!location || (location === 'inside' && !insideType)) {
-      setResult(null);
-      return;
-    }
-    
+    // Сначала очищаем старые результаты и ошибки
     setResult(null);
     setError('');
-    setLoading(true);
 
+    // Проводим все проверки до отправки запроса
     if (!token) {
       setError('Пожалуйста, введите ваш токен доступа.');
-      setLoading(false);
-      return;
+      return; // Выходим из функции, если токена нет
     }
+    if (!location || (location === 'inside' && !insideType)) {
+      setError('Пожалуйста, выберите все необходимые опции для расчета.');
+      return; // Выходим, если не все выбрано
+    }
+    
+    setLoading(true);
 
     let dataToSend = { location, insideType, ...inputs };
 
@@ -134,10 +109,7 @@ function ScaffoldingCalculator() {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
       const response = await fetch(`${apiUrl}/api/calculate/scaffolding`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': token },
         body: JSON.stringify(dataToSend)
       });
       const responseData = await response.json();
@@ -153,7 +125,6 @@ function ScaffoldingCalculator() {
     }
   };
 
-  // --- Функции экспорта ---
   const generateExportContent = () => {
     if (!result) return '';
     let content = '<h1>Расчет объема строительных лесов</h1>';
@@ -179,7 +150,6 @@ function ScaffoldingCalculator() {
     fileDownload.click();
   };
   
-  // --- "Сборочный цех" (Рендер / return) ---
   return (
     <>
       <style>{styles}</style>
@@ -295,3 +265,24 @@ function ScaffoldingCalculator() {
 }
 
 export default ScaffoldingCalculator;
+```
+
+---
+
+### Шаг 3: Отправьте Все Изменения на GitHub
+
+Теперь, когда у вас есть оба исправленных файла, вам нужно отправить финальную версию "чертежей" в наш "архив".
+
+1.  **Для бэкенда (папка `smetnoe-backend`):**
+    ```bash
+    git add .
+    git commit -m "fix: Улучшена обработка ошибок при выдаче токена"
+    git push
+    ```
+2.  **Для фронтенда (папка `smetnoe-frontend`):**
+    ```bash
+    git add .
+    git commit -m "fix: Исправлена логика кнопки расчета и ошибок"
+    git push
+    
+
