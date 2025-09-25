@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 // --- Стили ---
 const styles = `
+  /* ... стили без изменений ... */
   .scaffolding-calculator { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 700px; margin: 2rem auto; border-radius: 15px; overflow: hidden; box-shadow: 0 6px 25px rgba(0, 43, 85, 0.1); border: 1px solid #e0e7ff; background-color: #ffffff; }
   .calc-header { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: #fff; padding: 20px 25px; text-align: center; }
   .calc-header h2 { margin: 0; font-size: 24px; }
@@ -38,12 +39,21 @@ function ScaffoldingCalculator() {
     height: '', length: '', roomWidth: '',
     roomLength: '', scaffoldWidth: '', wallsLength: ''
   });
-  const [token, setToken] = useState('');
+  
+  // === ИЗМЕНЕНИЕ №1: Инициализируем токен из "сейфа" (localStorage) ===
+  const [token, setToken] = useState(localStorage.getItem('smetnoeUserToken') || '');
+  
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState(false);
 
+  // === ИЗМЕНЕНИЕ №2: Новый "наблюдатель", который сохраняет токен в "сейф" при каждом его изменении ===
+  useEffect(() => {
+    localStorage.setItem('smetnoeUserToken', token);
+  }, [token]);
+
+  // Этот useEffect остается без изменений, он по-прежнему получает токен из URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('token');
@@ -53,6 +63,7 @@ function ScaffoldingCalculator() {
     }
   }, []);
 
+  // Этот useEffect для получения токена после "оплаты" тоже работает как надо
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('userId');
@@ -66,8 +77,8 @@ function ScaffoldingCalculator() {
                 const data = await response.json();
                 
                 if (data.success && data.token) {
-                    setToken(data.token);
-                    alert(`Ваш токен доступа: ${data.token}\n\nОн скопирован в поле ввода. Теперь вы можете делать расчеты.`);
+                    setToken(data.token); // Эта команда теперь автоматически вызовет сохранение в "сейф"!
+                    alert(`Ваш токен доступа: ${data.token}\n\nОн сохранен в браузере и будет использоваться автоматически.`);
                     window.history.replaceState({}, document.title, window.location.pathname.replace('/payment-success', ''));
                 } else {
                   alert(data.message || 'Произошла ошибка при получении токена.');
@@ -163,7 +174,7 @@ function ScaffoldingCalculator() {
                     type="text"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
-                    placeholder="Вставьте токен, полученный от бота"
+                    placeholder="Вставьте токен или получите через бота"
                     style={{width: '100%', padding: '10px', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #cbd5e1'}}
                 />
             </div>
@@ -262,4 +273,6 @@ function ScaffoldingCalculator() {
 }
 
 export default ScaffoldingCalculator;
+
+
 
