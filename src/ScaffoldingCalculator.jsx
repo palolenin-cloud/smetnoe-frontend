@@ -33,7 +33,7 @@ function ScaffoldingCalculator() {
       // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Сохраняем токен в localStorage, чтобы он не терялся при перезагрузке
       localStorage.setItem('accessToken', tokenFromUrl); 
       
-      // Выводим сообщение об успехе (заменили alert на более мягкий способ вывода)
+      // ИСПРАВЛЕНИЕ ЛОГИКИ ОТОБРАЖЕНИЯ: Если токен получен, очищаем любые предыдущие ошибки
       setError(`Доступ получен! Ваш токен сохранен и готов к работе.`);
 
       // Очищаем URL, чтобы токен не оставался видимым
@@ -44,7 +44,16 @@ function ScaffoldingCalculator() {
     const errorFromUrl = urlParams.get('error');
     if (errorFromUrl) {
         setError(`Ошибка доступа: ${errorFromUrl}`);
+        // ВНИМАНИЕ: Если токен УЖЕ есть в localStorage, мы не должны показывать ошибку!
+        if (localStorage.getItem('accessToken')) {
+             setError(`Внимание: ${errorFromUrl}. Однако, в вашем браузере уже есть активный токен. Попробуйте расчет.`);
+        }
         window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    // Если токен есть в localStorage, но в URL нет новых данных, очищаем ошибку
+    if (localStorage.getItem('accessToken') && !tokenFromUrl && !errorFromUrl) {
+        setError(''); 
     }
     
   }, []); 
@@ -66,7 +75,8 @@ function ScaffoldingCalculator() {
     setResult(null);
 
     // Убедимся, что токен существует перед отправкой
-    if (!token) {
+    // Здесь token берется из useState, который был инициализирован из localStorage
+    if (!token) { 
       setError('Пожалуйста, введите ваш токен доступа или получите новый через Telegram-бота.');
       setLoading(false);
       return;
@@ -96,9 +106,10 @@ function ScaffoldingCalculator() {
 
       if (data.success) {
         setResult(data);
+        setError(''); // Очищаем сообщение об ошибке, если расчет успешен
       } else {
         // Если токен истек, очищаем его, чтобы пользователь получил новый
-        if (data.message.includes('истекший токен')) {
+        if (data.message.includes('истекший токен') || data.message.includes('Неверный или истекший токен')) {
             localStorage.removeItem('accessToken');
             setToken('');
         }
