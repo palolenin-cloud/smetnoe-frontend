@@ -16,45 +16,38 @@ function ScaffoldingCalculator() {
     wallsLength: ''
   });
   
+  // Токен теперь всегда считывается из локального хранилища при загрузке
   const [token, setToken] = useState(localStorage.getItem('accessToken') || '');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState(false);
 
-  // --- ИСПРАВЛЕНИЕ: Этот useEffect теперь правильно ищет userId и paymentId ---
+  // --- Критическое ИСПРАВЛЕНИЕ: Автоматический прием и сохранение токена ---
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('userId');
-    const paymentId = urlParams.get('paymentId');
+    const tokenFromUrl = urlParams.get('token');
+    
+    if (tokenFromUrl) {
+      setToken(tokenFromUrl);
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Сохраняем токен в localStorage, чтобы он не терялся при перезагрузке
+      localStorage.setItem('accessToken', tokenFromUrl); 
+      
+      // Выводим сообщение об успехе (заменили alert на более мягкий способ вывода)
+      setError(`Доступ получен! Ваш токен сохранен и готов к работе.`);
 
-    // Если в URL есть параметры от бота - запрашиваем токен
-    if (userId && paymentId) {
-        const fetchToken = async () => {
-            // Убедитесь, что REACT_APP_API_URL задан в переменных окружения Vercel
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-            try {
-                const response = await fetch(`${apiUrl}/api/payment-success?userId=${userId}&paymentId=${paymentId}`);
-                const data = await response.json();
-                
-                if (data.success && data.token) {
-                    localStorage.setItem('accessToken', data.token); // Сохраняем в "карман"
-                    setToken(data.token); // Кладем в "руку"
-                    alert(`Ваш токен доступа: ${data.token}\n\nОн сохранен в браузере и будет использоваться автоматически.`);
-                    // Очищаем URL, чтобы параметры не мешались
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } else {
-                  alert(data.message || 'Произошла ошибка при получении токена.');
-                  setError(data.message || 'Произошла ошибка при получении токена.');
-                }
-            } catch (err) {
-                alert('Не удалось связаться с сервером для получения токена. Попробуйте снова.');
-                setError('Не удалось связаться с сервером для получения токена. Проверьте ваше интернет-соединение или попробуйте позже.');
-            }
-        };
-        fetchToken();
+      // Очищаем URL, чтобы токен не оставался видимым
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, []); // Пустой массив зависимостей означает, что этот код выполнится только один раз при загрузке
+    
+    // Проверяем, вернулась ли ошибка от бэкенда при перенаправлении
+    const errorFromUrl = urlParams.get('error');
+    if (errorFromUrl) {
+        setError(`Ошибка доступа: ${errorFromUrl}`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+  }, []); 
 
 
   // --- Обработчики действий пользователя ---
@@ -72,6 +65,7 @@ function ScaffoldingCalculator() {
     setError('');
     setResult(null);
 
+    // Убедимся, что токен существует перед отправкой
     if (!token) {
       setError('Пожалуйста, введите ваш токен доступа или получите новый через Telegram-бота.');
       setLoading(false);
@@ -88,6 +82,7 @@ function ScaffoldingCalculator() {
       }
     };
 
+    // Адрес API должен быть задан в Vercel в переменной REACT_APP_API_URL
     const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
     
     try {
@@ -102,6 +97,11 @@ function ScaffoldingCalculator() {
       if (data.success) {
         setResult(data);
       } else {
+        // Если токен истек, очищаем его, чтобы пользователь получил новый
+        if (data.message.includes('истекший токен')) {
+            localStorage.removeItem('accessToken');
+            setToken('');
+        }
         setError(data.message || 'Произошла неизвестная ошибка.');
       }
     } catch (err) {
@@ -111,10 +111,11 @@ function ScaffoldingCalculator() {
     }
   };
     
-  // Функция для экспорта в Word
+  // Функция для экспорта в Word (не менялась)
   const exportToWord = () => {
     if (!result) return;
-    
+    // Логика экспорта... (опущена для краткости)
+    // ...
     const doc = new Document({
         sections: [{
             children: [
@@ -153,8 +154,8 @@ function ScaffoldingCalculator() {
   return (
     <>
     <style>{`
-        /* Стили остаются без изменений */
-        .scaffolding-calculator { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 700px; margin: 2rem auto; border-radius: 15px; overflow: hidden; box-shadow: 0 6px 25px rgba(0, 43, 85, 0.1); border: 1px solid #e0e7ff; background-color: #ffffff; }
+        /* Стили Tailwind-подобные классы для современного вида */
+        .scaffolding-calculator { font-family: 'Inter', sans-serif; max-width: 700px; margin: 2rem auto; border-radius: 15px; overflow: hidden; box-shadow: 0 6px 25px rgba(0, 43, 85, 0.1); border: 1px solid #e0e7ff; background-color: #ffffff; }
         .calc-header { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: #fff; padding: 20px 25px; text-align: center; }
         .calc-header h2 { margin: 0; font-size: 24px; }
         .calc-body { padding: 25px 30px; }
@@ -191,6 +192,7 @@ function ScaffoldingCalculator() {
           <form onSubmit={handleSubmit}>
             <div className="form-group token-input-group">
                 <label>Токен доступа</label>
+                {/* Токен будет отображаться здесь, если он был сохранен */}
                 <input type="text" value={token} onChange={(e) => setToken(e.target.value)} placeholder="Введите ваш токен доступа" required />
             </div>
 
