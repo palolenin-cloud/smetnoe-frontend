@@ -1,4 +1,4 @@
-/import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import { Packer, Document, Paragraph, TextRun } from 'docx';
 
